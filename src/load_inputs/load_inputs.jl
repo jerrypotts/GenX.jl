@@ -14,7 +14,7 @@ function load_inputs(setup::Dict, path::AbstractString)
     if setup["InputType"] == 1
         inputs = load_inputs_csv(setup, path)
     else
-        inputs = Dict()
+        inputs = load_inputs_portfolio(setup, portfolio)
     end
 
     return inputs
@@ -110,16 +110,18 @@ returns: Dict (dictionary) object containing all data inputs
 function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio)
 
     # Need to generate portfolios 
-    ## Read input files
-    println("Reading Input CSV Files")
+
+
     ## Declare Dict (dictionary) object used to store parameters
     inputs = Dict()
+    
     # Read input data about power network topology, operating and expansion attributes
     #if isfile(joinpath(system_path, "Network.csv"))
-    network_var = load_network_data!(setup, portfolio, inputs)
+    #Check if network exists in portfolio 
+    #network_var = load_network_data!(setup, portfolio, inputs)
     #else
-    #inputs["Z"] = 1
-    #inputs["L"] = 0
+    inputs["Z"] = 1
+    inputs["L"] = 0
     #end
 
     # Read temporal-resolved load data, and clustering information if relevant
@@ -176,7 +178,7 @@ function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio)
     inputs["VirtualChargeDischargeCost"] = setup["VirtualChargeDischargeCost"] /
                                            scale_factor
 
-    println("CSV Files Successfully Read In From $path")
+    println("Portfolio successfully read")
 
     return inputs
 end
