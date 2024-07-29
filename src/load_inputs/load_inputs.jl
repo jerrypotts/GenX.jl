@@ -117,66 +117,67 @@ function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio)
     
     # Read input data about power network topology, operating and expansion attributes
     #if isfile(joinpath(system_path, "Network.csv"))
-    #Check if network exists in portfolio 
-    #network_var = load_network_data!(setup, portfolio, inputs)
+    #Check if network exists in portfolio
+
+        network_var = load_network_data!(setup, portfolio, inputs)
     #else
     inputs["Z"] = 1
     inputs["L"] = 0
     #end
 
     # Read temporal-resolved load data, and clustering information if relevant
-    load_demand_data!(setup, portfolio, inputs)
+    #load_demand_data!(setup, portfolio, inputs)
     # Read fuel cost data, including time-varying fuel costs
-    load_fuels_data!(setup, portfolio, inputs)
+    #load_fuels_data!(setup, portfolio, inputs)
     # Read in generator/resource related inputs
-    load_resources_data!(inputs, setup, portfolio)
+    #load_resources_data!(inputs, setup, portfolio)
     # Read in generator/resource availability profiles
-    load_generators_variability!(setup, portfolio, inputs)
+    #load_generators_variability!(setup, portfolio, inputs)
 
-    validatetimebasis(inputs)
+    #validatetimebasis(inputs)
 
-    if setup["CapacityReserveMargin"] == 1
-        load_cap_reserve_margin!(setup, portfolio, inputs)
-        if inputs["Z"] > 1
-            load_cap_reserve_margin_trans!(setup, portfolio, network_var)
-        end
-    end
+    #if setup["CapacityReserveMargin"] == 1
+    #    load_cap_reserve_margin!(setup, portfolio, inputs)
+    #    if inputs["Z"] > 1
+    #        load_cap_reserve_margin_trans!(setup, portfolio, network_var)
+    #    end
+    #end
 
     # Read in general configuration parameters for operational reserves (resource-specific reserve parameters are read in load_resources_data)
-    if setup["OperationalReserves"] == 1
-        load_operational_reserves!(setup, portfolio, inputs)
-    end
+    #if setup["OperationalReserves"] == 1
+    #    load_operational_reserves!(setup, portfolio, inputs)
+    #end
 
-    if setup["MinCapReq"] == 1
-        load_minimum_capacity_requirement!(portfolio, inputs, setup)
-    end
+    #if setup["MinCapReq"] == 1
+    #    load_minimum_capacity_requirement!(portfolio, inputs, setup)
+    #end
 
-    if setup["MaxCapReq"] == 1
-        load_maximum_capacity_requirement!(portfolio, inputs, setup)
-    end
+    #if setup["MaxCapReq"] == 1
+    #    load_maximum_capacity_requirement!(portfolio, inputs, setup)
+    #end
 
-    if setup["EnergyShareRequirement"] == 1
-        load_energy_share_requirement!(setup, portfolio, inputs)
-    end
+    #if setup["EnergyShareRequirement"] == 1
+    #    load_energy_share_requirement!(setup, portfolio, inputs)
+    #end
 
-    if setup["CO2Cap"] >= 1
-        load_co2_cap!(setup, portfolio, inputs)
-    end
+    #if setup["CO2Cap"] >= 1
+    #    load_co2_cap!(setup, portfolio, inputs)
+    #end
 
-    if !isempty(inputs["VRE_STOR"])
-        load_vre_stor_variability!(setup, portfolio, inputs)
-    end
+    #if !isempty(inputs["VRE_STOR"])
+    #    load_vre_stor_variability!(setup, portfolio, inputs)
+    #end
 
     # Read in mapping of modeled periods to representative periods
     # Will need to update to be portfolio compatible
-    if is_period_map_necessary(inputs) && is_period_map_exist(setup, path)
-        load_period_map!(setup, portfolio, inputs)
-    end
+    #if is_period_map_necessary(inputs) && is_period_map_exist(setup, path)
+    #    load_period_map!(setup, portfolio, inputs)
+    #end
 
     # Virtual charge discharge cost
-    scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
-    inputs["VirtualChargeDischargeCost"] = setup["VirtualChargeDischargeCost"] /
-                                           scale_factor
+    #scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
+    #inputs["VirtualChargeDischargeCost"] = setup["VirtualChargeDischargeCost"] /
+    #                                       scale_factor
 
     println("Portfolio successfully read")
 
