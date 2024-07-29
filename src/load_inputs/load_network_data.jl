@@ -109,9 +109,6 @@ end
 
 function load_network_data_p!(setup::Dict, p::Portfolio, inputs_nw::Dict)
 
-    #Check that ModelScalingFactor is defined later, for now be explicit
-    ModelScalingFactor = 1000.0
-
     scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
 
     regions = p.internal.ext["Regions"]
