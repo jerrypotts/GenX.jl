@@ -4,6 +4,7 @@ module GenX
 export configure_settings
 export configure_solver
 export load_inputs
+export load_inputs_portfolio
 export load_dataframe
 export generate_model
 export solve_model
@@ -13,6 +14,13 @@ export mga
 export morris
 export simple_operation
 export choose_output_dir
+
+#Remove these later
+export get_settings_path
+export load_inputs_portfolio
+export configure_settings
+export load_network_data!
+export load_network_data_p!
 
 # Multi-stage methods
 export run_ddp
@@ -37,6 +45,7 @@ using Random
 using RecursiveArrayTools
 using Statistics
 using HiGHS
+using PowerSystems
 using PowerSystemsInvestmentsPortfolios
 const PSIP = PowerSystemsInvestmentsPortfolios
 
