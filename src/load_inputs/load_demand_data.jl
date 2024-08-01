@@ -90,6 +90,79 @@ function load_demand_data!(setup::Dict, path::AbstractString, inputs::Dict)
     println("Demand (load) data Successfully Read!")
 end
 
+function load_demand_data_p!(setup::Dict, p::Portfolio, inputs::Dict)
+
+    # Load related inputs
+    #TDR_directory = joinpath(path, setup["TimeDomainReductionFolder"])
+    # if TDR is used, my_dir = TDR_directory, else my_dir = "system"
+    #my_dir = get_systemfiles_path(setup, TDR_directory, path)
+    demand_in = collect(get_technologies(DemandRequirement, p))
+    segments = collect(get_technologies(CurtailableDemandSideTechnology, p))
+    #get_time_series_array(SingleTimeSeries, demand_in[1], "demand_ct")
+    #as_vector(col::Symbol) = collect(skipmissing(demand_in[!, col]))
+
+    # Number of time steps (periods)
+    T = p.internal.ext["total_timesteps"]
+    # Number of demand curtailment/lost load segments
+    SEG = length(segments[1].segments)
+
+    ## Set indices for internal use
+    inputs["T"] = T
+    inputs["SEG"] = SEG
+
+    inputs["omega"] = zeros(Float64, T) # weights associated with operational sub-period in the model - sum of weight = 8760
+    # Weights for each period - assumed same weights for each sub-period within a period
+    inputs["Weights"] = p.internal.ext["Sub_Weights"] # Weights each period
+
+    # Total number of periods and subperiods
+    inputs["REP_PERIOD"] = convert(Int16, p.internal.ext["Rep_Periods"])
+    inputs["H"] = convert(Int64, p.internal.ext["Timesteps_per_Rep_Period"])
+
+    # Creating sub-period weights from weekly weights
+    for w in 1:inputs["REP_PERIOD"]
+        for h in 1:inputs["H"]
+            t = inputs["H"] * (w - 1) + h
+            inputs["omega"][t] = inputs["Weights"][w] / inputs["H"]
+        end
+    end
+
+    # Create time set steps indicies
+    inputs["hours_per_subperiod"] = div.(T, inputs["REP_PERIOD"]) # total number of hours per subperiod
+    hours_per_subperiod = inputs["hours_per_subperiod"] # set value for internal use
+
+    inputs["START_SUBPERIODS"] = 1:hours_per_subperiod:T # set of indexes for all time periods that start a subperiod (e.g. sample day/week)
+    inputs["INTERIOR_SUBPERIODS"] = setdiff(1:T, inputs["START_SUBPERIODS"]) # set of indexes for all time periods that do not start a subperiod
+
+    # Demand in MW for each zone
+    scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
+    # Max value of non-served energy
+    inputs["Voll"] = [s.voll / scale_factor for s in segments] # convert from $/MWh $ million/GWh (assuming objective is divided by 1000)
+    # Demand in MW
+    #inputs["pD"] = extract_matrix_from_dataframe(demand_in,
+    #    DEMAND_COLUMN_PREFIX()[1:(end - 1)],
+    #    prefixseparator = 'z') / scale_factor
+    inputs["pD"] = zeros( inputs["T"], length(demand_in) )
+    for d in demand_in
+        load_data = []
+        for year in p.internal.ext["years"]
+            for day in p.internal.ext["order_days"]
+                ts = get_time_series(SingleTimeSeries, d, d.name, model_year = year, order_day = day)
+                time_array = values(ts.data) / scale_factor
+                append!(load_data, time_array)
+            end
+        end
+        inputs["pD"][:,d.zone] = load_data
+    end
+    # Cost of non-served energy/demand curtailment
+    # Cost of each segment reported as a fraction of value of non-served energy - scaled implicitly
+    inputs["pC_D_Curtail"] = segments[1].curtailment_cost * inputs["Voll"][1]
+
+    # Maximum hourly demand curtailable as % of the max demand (for each segment)
+    inputs["pMax_D_Curtail"] = segments[1].max_demand_curtailment
+    println("Demand (load) data Successfully Read!")
+    
+end
+
 # ensure that the length of demand data exactly matches
 # the number of subperiods times their length
 # and that the number of subperiods equals the list of provided weights
