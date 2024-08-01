@@ -108,6 +108,38 @@ function scale_resources_data!(resource_in::DataFrame, scale_factor::Float64)
     return nothing
 end
 
+function scale_resources_data!(resource_in::Dict, scale_factor::Float64)
+    columns_to_scale = [:existing_charge_cap_mw,        # to GW
+        :existing_cap_mwh,              # to GWh
+        :existing_cap_mw,               # to GW
+        :cap_size,                      # to GW
+        :min_cap_mw,                    # to GW
+        :min_cap_mwh,                   # to GWh
+        :min_charge_cap_mw,             # to GWh
+        :max_cap_mw,                    # to GW
+        :max_cap_mwh,                   # to GWh
+        :max_charge_cap_mw,             # to GW
+        :inv_cost_per_mwyr,             # to $M/GW/yr
+        :inv_cost_per_mwhyr,            # to $M/GWh/yr
+        :inv_cost_charge_per_mwyr,      # to $M/GW/yr
+        :fixed_om_cost_per_mwyr,        # to $M/GW/yr
+        :fixed_om_cost_per_mwhyr,       # to $M/GWh/yr
+        :fixed_om_cost_charge_per_mwyr, # to $M/GW/yr
+        :var_om_cost_per_mwh,           # to $M/GWh
+        :var_om_cost_per_mwh_in,        # to $M/GWh
+        :reg_cost,                      # to $M/GW
+        :rsv_cost,                      # to $M/GW
+        :min_retired_cap_mw,            # to GW
+        :min_retired_charge_cap_mw,     # to GW
+        :min_retired_energy_cap_mw,     # to GW
+        :start_cost_per_mw,             # to $M/GW
+        :ccs_disposal_cost_per_metric_ton, :hydrogen_mwh_per_tonne       # to GWh/t
+    ]
+
+    scale_dict!(resource_in, columns_to_scale, scale_factor)
+    return nothing
+end
+
 """
     scale_vre_stor_data!(vre_stor_in::DataFrame, scale_factor::Float64)
 
@@ -189,6 +221,17 @@ function scale_columns!(df::DataFrame,
     for column in columns_to_scale
         if string(column) in names(df)
             df[!, column] /= scale_factor
+        end
+    end
+    return nothing
+end
+
+function scale_dict!(d::Dict,
+    keys_to_scale::Vector{Symbol},
+    scale_factor::Float64)
+    for key in keys_to_scale
+        if haskey(d, key)
+            d[key] /= scale_factor
         end
     end
     return nothing
@@ -283,6 +326,79 @@ function create_resources_sametype(resource_in::DataFrame, ResourceType)
     return resources
 end
 
+function create_resources_sametype_from_portfolio(p::Portfolio, PortfolioType, scale_factor::Float64)
+    
+    mapping_dict = Dict(
+        SupplyTechnology{ThermalStandard} => GenX.Thermal,
+        SupplyTechnology{RenewableDispatch} => GenX.Vre,
+        StorageTechnology => GenX.Storage,
+    )
+
+    techs = collect(get_technologies(PortfolioType, p))
+
+    # sort technologies by ID
+    sort!(techs, by = v -> v.id)
+
+    ResourceType = mapping_dict[PortfolioType]
+
+    dict_list = []
+    for t in techs
+        d = Dict(key=>getfield(t, key) for key ∈ propertynames(t))
+        
+        #need to add the can_retire structs and ways of setting these based on inputs
+        d[:can_retire] = 0
+        d[:retrofit_id] = nothing
+        d[:new_build] = 1
+        d[:model] = 1
+
+        # Adjusting and adding values in dictionary to ensure compatibility with GenX
+        d[:resource] = d[:name]
+
+        # Extract cost information
+        if ResourceType == GenX.Storage
+            # Check for type of model
+            d[:inv_cost_per_mwyr] = get_proportional_term(d[:inv_cost_per_mwyr])
+            d[:inv_cost_charge_per_mwyr] = get_proportional_term(d[:inv_cost_charge_per_mwyr])
+            d[:inv_cost_per_mwhyr] = get_proportional_term(d[:inv_cost_per_mwhyr])
+            d[:fixed_om_cost_per_mwyr] = get_fixed(d[:om_costs])
+            d[:fixed_om_cost_per_mwhyr] = get_proportional_term(d[:fixed_om_cost_per_mwhyr])
+            d[:var_mw_cost_per_mw] = get_proportional_term(get_value_curve(get_charge_variable_cost(d[:om_costs])))
+            d[:var_om_cost_per_mwh_in] = get_proportional_term(get_value_curve(get_charge_variable_cost(d[:om_costs_charge])))
+
+            if d[:inv_cost_per_mwyr] == d[:inv_cost_charge_per_mwyr]
+                d[:model] = 1
+            else   
+                d[:model] = 2
+            end
+        else ResourceType == GenX.Thermal
+            d[:inv_cost_per_mwyr] = get_proportional_term(d[:inv_cost_per_mwyr])
+            d[:fixed_om_cost_per_mwyr] = get_fixed(d[:om_costs])
+            d[:var_om_cost_per_mwh] = get_proportional_term(get_value_curve(get_variable(d[:om_costs])))
+            
+            
+        end
+        # may not need to delete these later, but remove for now to check that portfolio
+        # inputs produce the same results as csv inputs
+        remove_keys = [:balancing_topology, :ext, :internal, :om_costs, :prime_mover_type, :base_power,
+                    :name, :outage_factor, :cofire_level_min, :cofire_level_max, :cofire_start_min,
+                    :cofire_start_max, :maintenance_duration, :maintenance_begin_cadence, :available,
+                    :maintenance_cycle_length_years, :om_costs_charge, :storage_tech, :power_systems_type]
+        for r in remove_keys
+            if haskey(d, r)
+                delete!(d, r)
+            end
+        end
+        
+        scale_resources_data!(d, scale_factor)
+
+        push!(dict_list, d)
+    end
+
+    resources::Vector{ResourceType} = ResourceType.(dict_list)
+    #append!(resources, new_r)
+    return resources
+end
+
 """
     create_resource_array(resource_folder::AbstractString, resources_info::NamedTuple, scale_factor::Float64=1.0)
 
@@ -326,6 +442,24 @@ function create_resource_array(resource_folder::AbstractString,
     return reduce(vcat, resources)
 end
 
+function create_resource_array_from_portfolio(p::Portfolio, setup::Dict)
+
+    scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1.0
+
+    technologies = [SupplyTechnology{ThermalStandard}, SupplyTechnology{RenewableDispatch}, StorageTechnology]
+    resources = []
+    for t in technologies
+        resources_same_type = create_resources_sametype_from_portfolio(p, t, scale_factor)
+        push!(resources, resources_same_type)
+    end
+    resources = reduce(vcat, resources)
+    
+    validate_resources(resources)
+
+    isempty(resources) &&
+        error("No resources data found. Check data path or configuration file \"genx_settings.yml\" inside Settings.")
+    return resources
+end
 @doc raw"""
 	check_mustrun_reserve_contribution(r::AbstractResource)
 
@@ -481,6 +615,7 @@ function announce_errors_and_halt(e::Vector)
     return nothing
 end
 
+# Fix data types later
 function validate_resources(resources::Vector{T}) where {T <: AbstractResource}
     e = check_resource(resources)
     if length(e) > 0
@@ -1311,7 +1446,6 @@ function load_resources_data!(inputs::Dict,
     end
     # create vector of resources from dataframes
     resources = create_resource_array(setup, resources_path)
-
     # read policy files and add policies-related attributes to resource dataframe
     resource_policies_path = joinpath(resources_path, setup["ResourcePoliciesFolder"])
     validate_policy_files(resource_policies_path, setup)
@@ -1324,7 +1458,35 @@ function load_resources_data!(inputs::Dict,
     add_resources_to_input_data!(inputs, setup, case_path, resources)
 
     # print summary of resources
-    summary(resources)
+    #summary(resources)
+    print("Resource data from CSVs read!")
+
+    return nothing
+end
+
+function load_resources_data_p!(inputs::Dict,
+        setup::Dict,
+        p::Portfolio,
+        case_path::AbstractString,
+        resources_path::AbstractString)
+
+    # create vector of resources from dataframes
+    resources = create_resource_array_from_portfolio(p, setup)
+
+    # read policy files and add policies-related attributes to resource dataframe
+    resource_policies_path = joinpath(resources_path, setup["ResourcePoliciesFolder"])
+    #validate_policy_files(resource_policies_path, setup)
+    add_policies_to_resources!(resources, resource_policies_path)
+
+    # read module files add module-related attributes to resource dataframe
+    add_modules_to_resources!(resources, setup, resources_path)
+
+    # add resources information to inputs dict
+    add_resources_to_input_data!(inputs, setup, case_path, resources)
+
+    # print summary of resources
+    #summary(resources)
+    print("Resource data from portfolio read!")
 
     return nothing
 end
