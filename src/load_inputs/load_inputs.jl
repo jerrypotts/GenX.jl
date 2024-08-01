@@ -116,21 +116,21 @@ function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio)
     inputs = Dict()
     
     # Read input data about power network topology, operating and expansion attributes
-    #if isfile(joinpath(system_path, "Network.csv"))
-    #Check if network exists in portfolio
 
-        network_var = load_network_data!(setup, portfolio, inputs)
-    #else
-    inputs["Z"] = 1
-    inputs["L"] = 0
-    #end
+    #Check if network exists in portfolio
+    if length(collect(get_technologies(TransportTechnology, p))) == 0
+        load_network_data_p!(setup, portfolio, inputs)
+    else
+        inputs["Z"] = 1
+        inputs["L"] = 0
+    end
 
     # Read temporal-resolved load data, and clustering information if relevant
-    #load_demand_data!(setup, portfolio, inputs)
+    load_demand_data!(setup, portfolio, inputs)
     # Read fuel cost data, including time-varying fuel costs
-    #load_fuels_data!(setup, portfolio, inputs)
+    load_fuels_data!(setup, portfolio, inputs)
     # Read in generator/resource related inputs
-    #load_resources_data!(inputs, setup, portfolio)
+    load_resources_data!(inputs, setup, portfolio)
     # Read in generator/resource availability profiles
     #load_generators_variability!(setup, portfolio, inputs)
 

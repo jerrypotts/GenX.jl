@@ -42,6 +42,80 @@ function load_fuels_data!(setup::Dict, path::AbstractString, inputs::Dict)
     return fuel_costs, fuel_CO2
 end
 
+function load_fuels_data_p!(setup::Dict, p::Portfolio, inputs::Dict)
+
+    # Fuel related inputs
+    fuels_technologies = collect(get_technologies(SupplyTechnology, p))
+
+    # Scale factor
+    scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
+
+    # Fuel costs & CO2 emissions rate for each fuel type
+    fuels = []
+    fuel_costs = Dict()
+    fuel_CO2 = Dict()
+    for tech in fuels_technologies
+        
+        #Extract multifuels
+        if tech.fuel isa Vector
+            for f in tech.fuel
+                fuel_data = []
+                # skip reading timeseries if fuel profile already stored
+                if !haskey(fuel_costs, f)
+                    for year in p.internal.ext["years"]
+                        for day in p.internal.ext["order_days"]
+                            ts = get_time_series(SingleTimeSeries, tech, f, model_year = year, order_day = day, type=f)
+                            time_array = values(ts.data) / scale_factor
+                            append!(fuel_data, time_array)
+                        end
+                    end
+                    
+                    # store information
+                    append!(fuels, f)
+                    fuel_costs[f] = fuel_data
+                    fuel_CO2[f] = d.co2[d.fuel]
+                end
+
+            end
+        # Extract single fuel data
+        else
+            if !haskey(fuel_costs, tech.fuel)
+                fuel_data = []
+                for year in p.internal.ext["years"]
+                    for day in p.internal.ext["order_days"]
+                        ts = get_time_series(SingleTimeSeries, tech, tech.fuel, model_year = year, order_day = day, type=tech.fuel)
+                        time_array = values(ts.data) / scale_factor
+                        append!(fuel_data, time_array)
+                    end
+                end
+                # store information
+                push!(fuels, tech.fuel)
+                fuel_costs[tech.fuel] = fuel_data
+                fuel_CO2[tech.fuel] = tech.co2
+            end
+        end
+
+    end
+
+    # Check for Non column
+    if !haskey(fuel_costs, "None")
+        costs = zeros(inputs["T"])
+
+        append!(fuels, "None")
+        fuel_costs["None"] = costs
+        fuel_CO2["None"] = 0.0
+
+    end
+
+    inputs["fuels"] = fuels
+    inputs["fuel_costs"] = fuel_costs
+    inputs["fuel_CO2"] = fuel_CO2
+
+    println("Fuels data Successfully Read!")
+
+    return
+end
+
 function ensure_column!(df::DataFrame, col::AbstractString, fill_element)
     if col ∉ names(df)
         df[!, col] = fill(fill_element, nrow(df))
