@@ -71,12 +71,13 @@ function load_fuels_data_p!(setup::Dict, p::Portfolio, inputs::Dict)
                     end
                     
                     # store information
-                    append!(fuels, f)
+                    push!(fuels, f)
                     fuel_costs[f] = fuel_data
                     fuel_CO2[f] = d.co2[d.fuel]
                 end
 
             end
+
         # Extract single fuel data
         else
             if !haskey(fuel_costs, tech.fuel)
