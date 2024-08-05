@@ -333,7 +333,9 @@ function create_resources_sametype_from_portfolio(p::Portfolio, PortfolioType, s
         SupplyTechnology{RenewableDispatch} => GenX.Vre,
         StorageTechnology => GenX.Storage,
     )
-
+    
+    retrofits = get_technology(RetrofitTechnology, p, "retrofits")
+    retires = get_technology(RetireableTechnology, p, "retires")
     techs = collect(get_technologies(PortfolioType, p))
 
     # sort technologies by ID
@@ -346,8 +348,14 @@ function create_resources_sametype_from_portfolio(p::Portfolio, PortfolioType, s
         d = Dict(key=>getfield(t, key) for key ∈ propertynames(t))
         
         #need to add the can_retire structs and ways of setting these based on inputs
-        d[:can_retire] = 0
-        d[:retrofit_id] = nothing
+        d[:can_retire] = retires.can_retire[t.prime_mover_type][t.region]
+        d[:retrofit] = retrofits.can_retrofit[t.prime_mover_type][t.region]
+        if d[:retrofit] !=0
+            d[:retrofit_id] = retrofit.retrofit_id[t.prime_mover_type][t.region]
+        else
+            d[:retrofit_id] = nothing
+        end
+        
         d[:new_build] = 1
         d[:model] = 1
 
