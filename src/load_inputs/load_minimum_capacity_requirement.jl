@@ -20,3 +20,26 @@ function load_minimum_capacity_requirement!(path::AbstractString, inputs::Dict, 
     end
     println(filename * " Successfully Read!")
 end
+
+function load_minimum_capacity_requirement_p!(p::Portfolio, inputs::Dict, setup::Dict)
+    #filename = "Minimum_capacity_requirement.csv"
+    #df = load_dataframe(joinpath(path, filename))
+    
+    mincaps = collect(get_requirements(MinimumCapacityRequirements, p))
+    mincaps = sort(mincaps, by= PSIP.get_name)
+
+    NumberOfMinCapReqs = length(mincaps)
+    inputs["NumberOfMinCapReqs"] = NumberOfMinCapReqs
+    inputs["MinCapReq"] = [m.min_mw for m in mincaps]
+    if setup["ParameterScale"] == 1
+        inputs["MinCapReq"] /= ModelScalingFactor # Convert to GW
+    end
+
+
+    inputs["MinCapPriceCap"] = [m.pricecap for m in mincaps]
+    if setup["ParameterScale"] == 1
+        inputs["MinCapPriceCap"] /= ModelScalingFactor # Convert to million $/GW
+    end
+
+    println("Minimum Requirements Successfully Read!")
+end

@@ -825,6 +825,28 @@ function add_policies_to_resources!(resources::Vector{<:AbstractResource},
     return nothing
 end
 
+function add_policies_to_resources_from_portfolio!(resources::Vector{<:AbstractResource},
+            p::Portfolio)
+
+    policies = collect(get_requirements(Requirements, p))
+    resource_policies = [pol for pol in policies if hasproperty(pol, :eligible_resources)]
+
+    for pol in resource_policies
+        policy_id = PSIP.get_name(pol)
+        sym = Symbol(policy_id)
+        for r in resources
+            name = r.resource
+            if name in PSIP.get_eligible_resources(pol)
+                value = 1
+            else
+                value = 0
+            end
+            # add attribute to resource
+            setproperty!(r, sym, value)
+        end
+    end
+end
+
 """
     add_module_to_resources!(resources::Vector{<:AbstractResource}, module_in::DataFrame)
 
@@ -1484,7 +1506,7 @@ function load_resources_data_p!(inputs::Dict,
     # read policy files and add policies-related attributes to resource dataframe
     resource_policies_path = joinpath(resources_path, setup["ResourcePoliciesFolder"])
     #validate_policy_files(resource_policies_path, setup)
-    add_policies_to_resources!(resources, resource_policies_path)
+    add_policies_to_resources_from_portfolio!(resources, p)
 
     # read module files add module-related attributes to resource dataframe
     add_modules_to_resources!(resources, setup, resources_path)
