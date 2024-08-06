@@ -14,7 +14,7 @@ function load_inputs(setup::Dict, path::AbstractString)
     if setup["InputType"] == 1
         inputs = load_inputs_csv(setup, path)
     else
-        inputs = load_inputs_portfolio(setup, portfolio)
+        inputs = load_inputs_portfolio(setup, portfolio, path)
     end
 
     return inputs
@@ -107,10 +107,12 @@ portfolio - Portfolio containing input data constructed from database
 
 returns: Dict (dictionary) object containing all data inputs
 """
-function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio)
+function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio, path::AbstractString)
 
     # Need to generate portfolios 
-
+    system_path = joinpath(path, setup["SystemFolder"])
+    resources_path = joinpath(path, setup["ResourcesFolder"])
+    policies_path = joinpath(path, setup["PoliciesFolder"])
 
     ## Declare Dict (dictionary) object used to store parameters
     inputs = Dict()
@@ -118,7 +120,7 @@ function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio)
     # Read input data about power network topology, operating and expansion attributes
 
     #Check if network exists in portfolio
-    if length(collect(get_technologies(TransportTechnology, p))) == 0
+    if length(collect(get_technologies(TransportTechnology, portfolio))) != 0
         load_network_data_p!(setup, portfolio, inputs)
     else
         inputs["Z"] = 1
@@ -126,58 +128,58 @@ function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio)
     end
 
     # Read temporal-resolved load data, and clustering information if relevant
-    load_demand_data!(setup, portfolio, inputs)
+    load_demand_data_p!(setup, portfolio, inputs)
     # Read fuel cost data, including time-varying fuel costs
-    load_fuels_data!(setup, portfolio, inputs)
+    load_fuels_data_p!(setup, portfolio, inputs)
     # Read in generator/resource related inputs
-    load_resources_data!(inputs, setup, portfolio)
+    load_resources_data_p!(inputs, setup, portfolio, path, resources_path)
     # Read in generator/resource availability profiles
-    #load_generators_variability!(setup, portfolio, inputs)
+    load_generators_variability_p!(portfolio, inputs)
 
-    #validatetimebasis(inputs)
+    validatetimebasis(inputs)
 
-    #if setup["CapacityReserveMargin"] == 1
-    #    load_cap_reserve_margin!(setup, portfolio, inputs)
-    #    if inputs["Z"] > 1
-    #        load_cap_reserve_margin_trans!(setup, portfolio, network_var)
-    #    end
-    #end
+    #Need to do this one
+    if setup["CapacityReserveMargin"] == 1
+        load_cap_reserve_margin!(setup, portfolio, inputs)
+        if inputs["Z"] > 1
+            load_cap_reserve_margin_trans!(setup, portfolio, network_var)
+        end
+    end
 
     # Read in general configuration parameters for operational reserves (resource-specific reserve parameters are read in load_resources_data)
-    #if setup["OperationalReserves"] == 1
-    #    load_operational_reserves!(setup, portfolio, inputs)
-    #end
+    if setup["OperationalReserves"] == 1
+        load_operational_reserves!(setup, system_path, inputs)
+    end
 
-    #if setup["MinCapReq"] == 1
-    #    load_minimum_capacity_requirement!(portfolio, inputs, setup)
-    #end
+    if setup["MinCapReq"] == 1
+        load_minimum_capacity_requirement_p!(portfolio, inputs, setup)
+    end
 
-    #if setup["MaxCapReq"] == 1
-    #    load_maximum_capacity_requirement!(portfolio, inputs, setup)
-    #end
+    if setup["MaxCapReq"] == 1
+        load_maximum_capacity_requirement!(policies_path, inputs, setup)
+    end
 
-    #if setup["EnergyShareRequirement"] == 1
-    #    load_energy_share_requirement!(setup, portfolio, inputs)
-    #end
+    if setup["EnergyShareRequirement"] == 1
+        load_energy_share_requirement!(setup, policies_path, inputs)
+    end
 
-    #if setup["CO2Cap"] >= 1
-    #    load_co2_cap!(setup, portfolio, inputs)
-    #end
+    if setup["CO2Cap"] >= 1
+        load_co2_cap_p!(setup, portfolio, inputs)
+    end
 
-    #if !isempty(inputs["VRE_STOR"])
-    #    load_vre_stor_variability!(setup, portfolio, inputs)
-    #end
+    if !isempty(inputs["VRE_STOR"])
+        load_vre_stor_variability!(setup, path, inputs)
+    end
 
     # Read in mapping of modeled periods to representative periods
-    # Will need to update to be portfolio compatible
-    #if is_period_map_necessary(inputs) && is_period_map_exist(setup, path)
-    #    load_period_map!(setup, portfolio, inputs)
-    #end
+    if is_period_map_necessary(inputs) && is_period_map_exist(setup, path)
+        load_period_map!(setup, path, inputs)
+    end
 
     # Virtual charge discharge cost
-    #scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
-    #inputs["VirtualChargeDischargeCost"] = setup["VirtualChargeDischargeCost"] /
-    #                                       scale_factor
+    scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
+    inputs["VirtualChargeDischargeCost"] = setup["VirtualChargeDischargeCost"] /
+                                           scale_factor
 
     println("Portfolio successfully read")
 
