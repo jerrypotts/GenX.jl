@@ -28,15 +28,15 @@ run_genx_case!("path/to/case", HiGHS.Optimizer)
 run_genx_case!("path/to/case", Gurobi.Optimizer)
 ```
 """
-function run_genx_case!(case::AbstractString, optimizer::Any = HiGHS.Optimizer)
+function run_genx_case!(case::AbstractString; optimizer::Any = HiGHS.Optimizer, portfolio::Portfolio = Portfolio(0.0))
     genx_settings = get_settings_path(case, "genx_settings.yml") # Settings YAML file path
     writeoutput_settings = get_settings_path(case, "output_settings.yml") # Write-output settings YAML file path
     mysetup = configure_settings(genx_settings, writeoutput_settings) # mysetup dictionary stores settings and GenX-specific parameters
 
     if mysetup["MultiStage"] == 0
-        run_genx_case_simple!(case, mysetup, optimizer)
+        run_genx_case_simple!(case, mysetup, optimizer, portfolio)
     else
-        run_genx_case_multistage!(case, mysetup, optimizer)
+        run_genx_case_multistage!(case, mysetup, optimizer, portfolio)
     end
 end
 
@@ -47,7 +47,7 @@ function time_domain_reduced_files_exist(tdrpath)
     return (tdr_demand && tdr_genvar && tdr_fuels)
 end
 
-function run_genx_case_simple!(case::AbstractString, mysetup::Dict, optimizer::Any)
+function run_genx_case_simple!(case::AbstractString, mysetup::Dict, optimizer::Any, portfolio::Portfolio)
     settings_path = get_settings_path(case)
 
     ### Cluster time series inputs if necessary and if specified by the user
@@ -71,7 +71,7 @@ function run_genx_case_simple!(case::AbstractString, mysetup::Dict, optimizer::A
 
     ### Load inputs
     println("Loading Inputs")
-    myinputs = load_inputs(mysetup, case)
+    myinputs = load_inputs(mysetup, case, portfolio)
 
     println("Generating the Optimization Model")
     time_elapsed = @elapsed EP = generate_model(mysetup, myinputs, OPTIMIZER)
@@ -104,7 +104,7 @@ function run_genx_case_simple!(case::AbstractString, mysetup::Dict, optimizer::A
     end
 end
 
-function run_genx_case_multistage!(case::AbstractString, mysetup::Dict, optimizer::Any)
+function run_genx_case_multistage!(case::AbstractString, mysetup::Dict, optimizer::Any, portfolio::Portfolio)
     settings_path = get_settings_path(case)
     multistage_settings = get_settings_path(case, "multi_stage_settings.yml") # Multi stage settings YAML file path
     mysetup["MultiStageSettingsDict"] = YAML.load(open(multistage_settings))
@@ -149,7 +149,7 @@ function run_genx_case_multistage!(case::AbstractString, mysetup::Dict, optimize
         # Step 1) Load Inputs
         inpath_sub = joinpath(case, "inputs", string("inputs_p", t))
 
-        inputs_dict[t] = load_inputs(mysetup, inpath_sub)
+        inputs_dict[t] = load_inputs(mysetup, inpath_sub, portfolio)
         inputs_dict[t] = configure_multi_stage_inputs(inputs_dict[t],
             mysetup["MultiStageSettingsDict"],
             mysetup["NetworkExpansion"])

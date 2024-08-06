@@ -9,7 +9,7 @@ path - string path to working directory
 
 returns: Dict (dictionary) object containing all data inputs
 """
-function load_inputs(setup::Dict, path::AbstractString)
+function load_inputs(setup::Dict, path::AbstractString, portfolio::Portfolio)
 
     if setup["InputType"] == 1
         inputs = load_inputs_csv(setup, path)
