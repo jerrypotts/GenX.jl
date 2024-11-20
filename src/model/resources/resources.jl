@@ -538,7 +538,7 @@ resource_id(rs::Vector{T}) where {T <: AbstractResource} = resource_id.(rs)
 resource_type_mga(r::AbstractResource) = r.resource_type
 
 zone_id(r::AbstractResource) = r.zone
-zone_id(rs::Vector{T}) where {T <: AbstractResource} = rs.zone
+zone_id(rs::Vector{T}) where {T <: AbstractResource} = rs.region
 
 # getter for boolean attributes (true or false) with validation
 function new_build(r::AbstractResource)

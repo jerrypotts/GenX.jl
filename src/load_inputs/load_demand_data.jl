@@ -151,7 +151,8 @@ function load_demand_data_p!(setup::Dict, p::Portfolio, inputs::Dict)
                 append!(load_data, time_array)
             end
         end
-        inputs["pD"][:,d.zone] = load_data
+        id = PSIP.get_id(d.region)
+        inputs["pD"][:, id] = load_data
     end
     # Cost of non-served energy/demand curtailment
     # Cost of each segment reported as a fraction of value of non-served energy - scaled implicitly

@@ -328,69 +328,91 @@ end
 
 function create_resources_sametype_from_portfolio(p::Portfolio, PortfolioType, scale_factor::Float64)
     
+    #TODO: Better mapping?
     mapping_dict = Dict(
         SupplyTechnology{ThermalStandard} => GenX.Thermal,
         SupplyTechnology{RenewableDispatch} => GenX.Vre,
         StorageTechnology => GenX.Storage,
     )
     
-    retrofits = get_technology(RetrofitTechnology, p, "retrofits")
-    retires = get_technology(RetireableTechnology, p, "retires")
+    #retrofits = get_technology(RetrofitTechnology, p, "retrofits")
+    #retires = get_technology(RetireableTechnology, p, "retires")
     techs = collect(get_technologies(PortfolioType, p))
 
     # sort technologies by ID
-    sort!(techs, by = v -> v.id)
+    sort!(techs, by = v -> get_id(v))
 
     ResourceType = mapping_dict[PortfolioType]
 
     dict_list = []
     for t in techs
         d = Dict(key=>getfield(t, key) for key ∈ propertynames(t))
-        
-        #need to add the can_retire structs and ways of setting these based on inputs
-        d[:can_retire] = retires.can_retire[t.prime_mover_type][t.region]
-        d[:retrofit] = retrofits.can_retrofit[t.prime_mover_type][t.region]
-        if d[:retrofit] !=0
-            d[:retrofit_id] = retrofit.retrofit_id[t.prime_mover_type][t.region]
-        else
-            d[:retrofit_id] = nothing
-        end
-        
+
+        # TODO: Update with new retirements and retrofits
+        d[:can_retire] = 0
+        d[:retrofit] = 0
+        d[:retrofit_id] = nothing
+
+        d[:id] = get_id(t)
         d[:new_build] = 1
         d[:model] = 1
+        d[:region] = PSIP.get_name(t.region)
+        d[:zone] = get_id(t.region)
+
 
         # Adjusting and adding values in dictionary to ensure compatibility with GenX
+        d[:name] = PSIP.get_name(t)
         d[:resource] = d[:name]
 
         # Extract cost information
         if ResourceType == GenX.Storage
             # Check for type of model
-            d[:inv_cost_per_mwyr] = get_proportional_term(d[:inv_cost_per_mwyr])
-            d[:inv_cost_charge_per_mwyr] = get_proportional_term(d[:inv_cost_charge_per_mwyr])
-            d[:inv_cost_per_mwhyr] = get_proportional_term(d[:inv_cost_per_mwhyr])
-            d[:fixed_om_cost_per_mwyr] = get_fixed(d[:om_costs])
-            d[:fixed_om_cost_per_mwhyr] = get_proportional_term(d[:fixed_om_cost_per_mwhyr])
-            d[:var_mw_cost_per_mw] = get_proportional_term(get_value_curve(get_charge_variable_cost(d[:om_costs])))
-            d[:var_om_cost_per_mwh_in] = get_proportional_term(get_value_curve(get_charge_variable_cost(d[:om_costs_charge])))
+            d[:inv_cost_per_mwyr] = get_proportional_term(t.capital_costs_power)
+            d[:inv_cost_charge_per_mwyr] = get_proportional_term(t.capital_costs_power)
+            d[:inv_cost_per_mwhyr] = get_proportional_term(t.capital_costs_energy)
+            d[:fixed_om_cost_per_mwyr] = get_fixed(t.om_costs_power)
+            d[:fixed_om_cost_per_mwhyr] = get_fixed(t.om_costs_energy)
+            d[:var_mw_cost_per_mw] = get_proportional_term(get_value_curve(get_charge_variable_cost(t.om_costs_power)))
+            d[:var_om_cost_per_mwh_in] = get_proportional_term(get_value_curve(get_charge_variable_cost(t.om_costs_power)))
+            d[:var_om_cost_per_mwh] = get_proportional_term(get_value_curve(get_charge_variable_cost(t.om_costs_power)))
+            d[:existing_cap_mw] = get_existing_cap_power(t)
+            d[:existing_cap_mwh] = get_existing_cap_energy(t)
+            d[:max_cap_mw] = get_max_cap_power(t)
+            d[:min_cap_mw] = get_min_cap_power(t)
+            d[:max_cap_mwh] = get_max_cap_energy(t)
+            d[:min_cap_mwh] = get_min_cap_energy(t)
+            d[:self_disch] = get_losses(t)
 
+            #TODO: This if-statement is always true for now. Update later when we support different charge/discharge costs
             if d[:inv_cost_per_mwyr] == d[:inv_cost_charge_per_mwyr]
                 d[:model] = 1
             else   
                 d[:model] = 2
             end
-        else ResourceType == GenX.Thermal
-            d[:inv_cost_per_mwyr] = get_proportional_term(d[:inv_cost_per_mwyr])
-            d[:fixed_om_cost_per_mwyr] = get_fixed(d[:om_costs])
-            d[:var_om_cost_per_mwh] = get_proportional_term(get_value_curve(get_variable(d[:om_costs])))
-            
+        
+        else #ResourceType == GenX.Thermal
+            d[:inv_cost_per_mwyr] = get_proportional_term(t.capital_costs)
+            d[:fixed_om_cost_per_mwyr] = get_fixed(t.operation_costs)
+            d[:var_om_cost_per_mwh] = get_proportional_term(get_value_curve(get_variable(t.operation_costs)))
+            d[:existing_cap_mw] = get_initial_capacity(t)
+            d[:min_cap_mw] = get_minimum_required_capacity(t)
+            d[:max_cap_mw] = get_maximum_capacity(t)
+            d[:min_power] = get_min_generation_percentage(t)
+            d[:cluster] = get_cluster(t)
+            d[:cap_size] = get_unit_size(t)
+
+            if ResourceType == GenX.Vre
+                d[:num_vre_bins] = 1
+            end
             
         end
-        # may not need to delete these later, but remove for now to check that portfolio
-        # inputs produce the same results as csv inputs
-        remove_keys = [:balancing_topology, :ext, :internal, :om_costs, :prime_mover_type, :base_power,
-                    :name, :outage_factor, :cofire_level_min, :cofire_level_max, :cofire_start_min,
+        # TODO: may not need to delete these later, but remove for now to check that portfolio inputs produce the same results as csv inputs
+        remove_keys = [:balancing_topology, :ext, :internal, :om_costs_power, :om_costs_energy, :prime_mover_type,
+                    :name, :outage_factor, :cofire_level_min, :cofire_level_max, :cofire_start_min, :base_power,
                     :cofire_start_max, :maintenance_duration, :maintenance_begin_cadence, :available,
-                    :maintenance_cycle_length_years, :om_costs_charge, :storage_tech, :power_systems_type]
+                    :maintenance_cycle_length_years, :storage_tech, :power_systems_type, :co2,
+                    :min_generation_percentage, :capital_costs, :operation_costs, :maximum_capacity, :initial_capacity, :capital_costs_power,
+                    :capital_costs_energy, :existing_cap_energy, :min_cap_power, :min_cap_energy, :existing_cap_power, :losses ]
         for r in remove_keys
             if haskey(d, r)
                 delete!(d, r)
@@ -831,6 +853,10 @@ function add_policies_to_resources_from_portfolio!(resources::Vector{<:AbstractR
     policies = collect(get_requirements(Requirements, p))
     resource_policies = [pol for pol in policies if hasproperty(pol, :eligible_resources)]
 
+    # get vector of resources
+    eligible_resources = [PSIP.get_eligible_resources(pol) for pol in resource_policies]
+    eligible_resources = unique(reduce(vcat, eligible_resources))
+
     for pol in resource_policies
         policy_id = PSIP.get_name(pol)
         sym = Symbol(policy_id)
@@ -838,11 +864,14 @@ function add_policies_to_resources_from_portfolio!(resources::Vector{<:AbstractR
             name = r.resource
             if name in PSIP.get_eligible_resources(pol)
                 value = 1
-            else
+                # add attribute to resource
+                setproperty!(r, sym, value)
+            elseif name in eligible_resources
                 value = 0
+                # add attribute to resource
+                setproperty!(r, sym, value)
             end
-            # add attribute to resource
-            setproperty!(r, sym, value)
+            
         end
     end
 end
@@ -1200,7 +1229,8 @@ function add_resources_to_input_data!(inputs::Dict,
         # Start-up cost is sum of fixed cost per start startup
         inputs["C_Start"] = zeros(Float64, G, T)
         for g in inputs["THERM_COMMIT"]
-            start_up_cost = start_cost_per_mw(gen[g]) * cap_size(gen[g])
+            # TODO: Update with correct unit commitment cap size later when we have that in the portfolio
+            start_up_cost = start_cost_per_mw(gen[g]) * 250.0 #cap_size(gen[g])
             inputs["C_Start"][g, :] .= start_up_cost
         end
         # Piecewise fuel usage option

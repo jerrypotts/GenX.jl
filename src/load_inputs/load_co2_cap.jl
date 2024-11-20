@@ -53,15 +53,16 @@ function load_co2_cap_p!(setup::Dict, p::Portfolio, inputs::Dict)
     zones_matrix = zeros(Int64, inputs["Z"], inputs["NCO2Cap"])
     for (idx, z_list) in enumerate(zones)
         for z in z_list
-            zones_matrix[z,idx] = 1
+            id = get_id(z)
+            zones_matrix[id,idx] = 1
         end
     end
     inputs["dfCO2CapZones"] = zones_matrix
 
 
     #This may not be the correct way of storing slacks, check with another example later
-    slacks = [get_pricecap(c) for c in co2_policies]
-    inputs["dfCO2Cap_slack"] = slacks ./= scale_factor # Million $/kton if scaled, $/ton if not scaled
+    #slacks = [get_pricecap(c) for c in co2_policies]
+    #inputs["dfCO2Cap_slack"] = slacks ./= scale_factor # Million $/kton if scaled, $/ton if not scaled
 
     # Emission limits
     #limits_matrix = zeros(Int64, inputs["NCO2Cap"], inputs["NCO2Cap"])

@@ -112,7 +112,8 @@ function load_network_data_p!(setup::Dict, p::Portfolio, inputs_nw::Dict)
     scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
 
     regions = p.internal.ext["Regions"]
-    lines = collect(get_technologies(TransportTechnology, p))
+    #TODO: Generalize for other TransportTechnologies
+    lines = collect(get_technologies(GenericTransportTechnology, p))
 
     # Number of zones in the network
     Z = length(regions)
@@ -208,13 +209,13 @@ function load_network_data_p!(setup::Dict, p::Portfolio, inputs_nw::Dict)
 
 end
 
-function load_network_map_port(lines::Vector{TransportTechnology}, Z, L)
+function load_network_map_port(lines::Vector{GenericTransportTechnology}, Z, L)
     mat = zeros(L, Z)
     start_zones = [get_start_region(l) for l in lines]
     end_zones = [get_end_region(l) for l in lines]
     for l in 1:L
-        mat[l, start_zones[l]] = 1
-        mat[l, end_zones[l]] = -1
+        mat[l, PSIP.get_id(start_zones[l])] = 1
+        mat[l, PSIP.get_id(end_zones[l])] = -1
     end
     mat
 end

@@ -96,8 +96,15 @@ function load_inputs_csv(setup::Dict, path::AbstractString)
     return inputs
 end
 
+# Define generic constant for TransportTechnologies
+const GenericTransportTechnology = Union{
+    PSIP.ACTransportTechnology,
+    PSIP.ExistingTransportTechnology,
+    PSIP.HVDCTransportTechnology,
+}
+
 """
-	load_inputs(setup::Dict,portfolio::PSIP.Portfolio)
+	load_inputs_portfolio(setup::Dict,portfolio::PSIP.Portfolio)
 
 Loads various data inputs from a PSIP Portfolio and stores variables in a Dict (dictionary) object for use in model() function
 
@@ -120,7 +127,7 @@ function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio, path::Abs
     # Read input data about power network topology, operating and expansion attributes
 
     #Check if network exists in portfolio
-    if length(collect(get_technologies(TransportTechnology, portfolio))) != 0
+    if length(collect(get_technologies(GenericTransportTechnology, portfolio))) != 0
         load_network_data_p!(setup, portfolio, inputs)
     else
         inputs["Z"] = 1

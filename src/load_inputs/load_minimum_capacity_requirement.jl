@@ -35,11 +35,11 @@ function load_minimum_capacity_requirement_p!(p::Portfolio, inputs::Dict, setup:
         inputs["MinCapReq"] /= ModelScalingFactor # Convert to GW
     end
 
-
-    inputs["MinCapPriceCap"] = [m.pricecap for m in mincaps]
-    if setup["ParameterScale"] == 1
-        inputs["MinCapPriceCap"] /= ModelScalingFactor # Convert to million $/GW
-    end
+    # Add this slack back in later since I think they store it differently
+    #inputs["MinCapPriceCap"] = [m.pricecap for m in mincaps]
+    #if setup["ParameterScale"] == 1
+    #    inputs["MinCapPriceCap"] /= ModelScalingFactor # Convert to million $/GW
+    #end
 
     println("Minimum Requirements Successfully Read!")
 end

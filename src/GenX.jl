@@ -15,12 +15,23 @@ export morris
 export simple_operation
 export choose_output_dir
 
-#Remove these later
+#TODO: Remove these later, just for testing purposes
 export get_settings_path
 export load_inputs_portfolio
 export configure_settings
 export load_network_data!
 export load_network_data_p!
+export load_demand_data!
+export load_demand_data_p!
+export load_fuels_data!
+export load_fuels_data_p!
+export load_resources_data!
+export load_resources_data_p!
+export load_generators_variability!
+export load_generators_variability_p!
+export create_resources_from_portfolio
+export load_inputs_portfolio
+export load_inputs_csv
 
 # Multi-stage methods
 export run_ddp
