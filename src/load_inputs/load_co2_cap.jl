@@ -1,7 +1,7 @@
 @doc raw"""
     load_co2_cap!(setup::Dict, path::AbstractString, inputs::Dict)
 
-Read input parameters related to CO$_2$ emissions cap constraints
+Read input parameters from CSV related to CO$_2$ emissions cap constraints
 """
 function load_co2_cap!(setup::Dict, path::AbstractString, inputs::Dict)
     scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
@@ -40,6 +40,11 @@ function load_co2_cap!(setup::Dict, path::AbstractString, inputs::Dict)
     println(filename * " Successfully Read!")
 end
 
+@doc raw"""
+    load_co2_cap_p!(setup::Dict, p::Portfolio, inputs::Dict)
+
+Read input parameters from portfolio related to CO$_2$ emissions cap constraints
+"""
 function load_co2_cap_p!(setup::Dict, p::Portfolio, inputs::Dict)
     
     scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1

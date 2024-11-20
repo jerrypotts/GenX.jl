@@ -1,7 +1,7 @@
 @doc raw"""
     load_network_data!(setup::Dict, path::AbstractString, inputs_nw::Dict)
 
-Function for reading input parameters related to the electricity transmission network
+Function for reading input parameters related to the electricity transmission network from CSVs
 """
 function load_network_data!(setup::Dict, path::AbstractString, inputs_nw::Dict)
     scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
@@ -106,7 +106,11 @@ function load_network_data!(setup::Dict, path::AbstractString, inputs_nw::Dict)
     return network_var
 end
 
+@doc raw"""
+    load_network_data_p!(setup::Dict, p::Portfolio, inputs_nw::Dict)
 
+Function for reading input parameters related to the electricity transmission network from portfolio
+"""
 function load_network_data_p!(setup::Dict, p::Portfolio, inputs_nw::Dict)
 
     scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
@@ -209,6 +213,16 @@ function load_network_data_p!(setup::Dict, p::Portfolio, inputs_nw::Dict)
 
 end
 
+@doc raw"""
+    load_network_map_port(lines::Vector{GenericTransportTechnology}, Z, L)
+
+Loads the network map from a list-style interface from portfolio
+```
+..., Network_Lines, Start_Zone, End_Zone, ...
+                 1,           1,       2,
+                 2,           1,       3,
+```
+"""
 function load_network_map_port(lines::Vector{GenericTransportTechnology}, Z, L)
     mat = zeros(L, Z)
     start_zones = [get_start_region(l) for l in lines]
@@ -223,7 +237,7 @@ end
 @doc raw"""
     load_network_map_from_list(network_var::DataFrame, Z, L, list_columns)
 
-Loads the network map from a list-style interface
+Loads the network map from a list-style interface from dataframe
 ```
 ..., Network_Lines, Start_Zone, End_Zone, ...
                  1,           1,       2,

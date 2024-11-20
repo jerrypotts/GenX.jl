@@ -1,7 +1,7 @@
 @doc raw"""
 	load_generators_variability!(setup::Dict, path::AbstractString, inputs::Dict)
 
-Read input parameters related to hourly maximum capacity factors for generators, storage, and flexible demand resources
+Read input parameters from CSVs related to hourly maximum capacity factors for generators, storage, and flexible demand resources
 """
 function load_generators_variability!(setup::Dict, path::AbstractString, inputs::Dict)
 
@@ -33,6 +33,11 @@ function load_generators_variability!(setup::Dict, path::AbstractString, inputs:
     println(filename * " Successfully Read!")
 end
 
+@doc raw"""
+	load_generators_variability_p!(p::Portfolio, inputs::Dict)
+
+Read input parameters from portfolio related to hourly maximum capacity factors for generators, storage, and flexible demand resources
+"""
 function load_generators_variability_p!(p::Portfolio, inputs::Dict)
 
     # Hourly capacity factors

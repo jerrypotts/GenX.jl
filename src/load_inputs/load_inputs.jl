@@ -1,11 +1,12 @@
 @doc raw"""
-	load_inputs(setup::Dict,path::AbstractString)
+	load_inputs(setup::Dict,path::AbstractString, portfolio::Portfolio)
 
-Loads various data inputs from multiple input .csv files in path directory and stores variables in a Dict (dictionary) object for use in model() function
+Loads inputs into a dictionary. Calls either load_inputs_csv or load_inputs_portfolio depending on the value of "InputType" in genx_settings.yaml
 
 inputs:
 setup - dict object containing setup parameters
 path - string path to working directory
+portfolio - Sienna portfolio required for load_inputs_portfolios
 
 returns: Dict (dictionary) object containing all data inputs
 """
@@ -20,6 +21,17 @@ function load_inputs(setup::Dict, path::AbstractString, portfolio::Portfolio)
     return inputs
 end
 
+@doc raw"""
+	load_inputs(setup::Dict,path::AbstractString)
+
+Reads inputs from a set of CSV files and stores data in a dictionary.
+
+inputs:
+setup - dict object containing setup parameters
+path - string path to working directory
+
+returns: Dict (dictionary) object containing all data inputs
+"""
 function load_inputs_csv(setup::Dict, path::AbstractString)
 
     ## Read input files
@@ -104,13 +116,14 @@ const GenericTransportTechnology = Union{
 }
 
 """
-	load_inputs_portfolio(setup::Dict,portfolio::PSIP.Portfolio)
+	load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio)
 
 Loads various data inputs from a PSIP Portfolio and stores variables in a Dict (dictionary) object for use in model() function
 
 inputs:
 setup - dict object containing setup parameters
 portfolio - Portfolio containing input data constructed from database
+path - string path to working directory
 
 returns: Dict (dictionary) object containing all data inputs
 """
@@ -146,7 +159,7 @@ function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio, path::Abs
     validatetimebasis(inputs)
 
     #Need to do this one
-    if setup["CapacityReserveMargin"] == 1
+    if setup["CapacityReserveMargin"] == 1 #TODO
         load_cap_reserve_margin!(setup, portfolio, inputs)
         if inputs["Z"] > 1
             load_cap_reserve_margin_trans!(setup, portfolio, network_var)
@@ -154,7 +167,7 @@ function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio, path::Abs
     end
 
     # Read in general configuration parameters for operational reserves (resource-specific reserve parameters are read in load_resources_data)
-    if setup["OperationalReserves"] == 1
+    if setup["OperationalReserves"] == 1 #TODO
         load_operational_reserves!(setup, system_path, inputs)
     end
 
@@ -162,11 +175,11 @@ function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio, path::Abs
         load_minimum_capacity_requirement_p!(portfolio, inputs, setup)
     end
 
-    if setup["MaxCapReq"] == 1
+    if setup["MaxCapReq"] == 1 #TODO
         load_maximum_capacity_requirement!(policies_path, inputs, setup)
     end
 
-    if setup["EnergyShareRequirement"] == 1
+    if setup["EnergyShareRequirement"] == 1 #TODO
         load_energy_share_requirement!(setup, policies_path, inputs)
     end
 
@@ -174,7 +187,7 @@ function load_inputs_portfolio(setup::Dict, portfolio::PSIP.Portfolio, path::Abs
         load_co2_cap_p!(setup, portfolio, inputs)
     end
 
-    if !isempty(inputs["VRE_STOR"])
+    if !isempty(inputs["VRE_STOR"]) #TODO
         load_vre_stor_variability!(setup, path, inputs)
     end
 

@@ -1,7 +1,7 @@
 @doc raw"""
     load_fuels_data!(setup::Dict, path::AbstractString, inputs::Dict)
 
-Read input parameters related to fuel costs and CO$_2$ content of fuels
+Read input parameters from CSVs related to fuel costs and CO$_2$ content of fuels
 """
 function load_fuels_data!(setup::Dict, path::AbstractString, inputs::Dict)
 
@@ -42,6 +42,11 @@ function load_fuels_data!(setup::Dict, path::AbstractString, inputs::Dict)
     return fuel_costs, fuel_CO2
 end
 
+@doc raw"""
+    load_fuels_data_p!(setup::Dict, p::Portfolio, inputs::Dict)
+
+Read input parameters from portfolio related to fuel costs and CO$_2$ content of fuels
+"""
 function load_fuels_data_p!(setup::Dict, p::Portfolio, inputs::Dict)
 
     # Fuel related inputs

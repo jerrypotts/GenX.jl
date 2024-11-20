@@ -326,9 +326,22 @@ function create_resources_sametype(resource_in::DataFrame, ResourceType)
     return resources
 end
 
+"""
+    create_resources_sametype_from_portfolio(p::Portfolio, PortfolioType, scale_factor::Float64)
+
+This function takes a PSIP Portfolio and converts SupplyTechnologies and StorageTechnologies to an array of AbstractResource of the corresponding GenX ResourceTypes.
+
+# Arguments
+- `p::Portfolio`: Portfolio which contains the resource and technology data
+- `PortfolioType`: The type of technology as defined in PowerSystemsInvestmentsPortfolios
+- `scale_factor::Float64`: : Scaling factor for the resource data.
+
+# Returns
+- `resources::Vector{ResourceType}`: An array of resources of the specified type.
+"""
 function create_resources_sametype_from_portfolio(p::Portfolio, PortfolioType, scale_factor::Float64)
     
-    #TODO: Better mapping?
+    #TODO: Better mapping
     mapping_dict = Dict(
         SupplyTechnology{ThermalStandard} => GenX.Thermal,
         SupplyTechnology{RenewableDispatch} => GenX.Vre,

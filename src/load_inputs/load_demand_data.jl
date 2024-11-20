@@ -25,7 +25,7 @@ DEMAND_COLUMN_PREFIX_DEPRECATED() = "Load_MW_z"
 @doc raw"""
 	load_demand_data!(setup::Dict, path::AbstractString, inputs::Dict)
 
-Read input parameters related to electricity demand (load)
+Read input parameters related to electricity demand (load) from CSVs
 """
 function load_demand_data!(setup::Dict, path::AbstractString, inputs::Dict)
 
@@ -90,6 +90,11 @@ function load_demand_data!(setup::Dict, path::AbstractString, inputs::Dict)
     println("Demand (load) data Successfully Read!")
 end
 
+@doc raw"""
+	load_demand_data_p!(setup::Dict, p::Portfolio, inputs::Dict)
+
+Read input parameters related to electricity demand (load) from portfolio
+"""
 function load_demand_data_p!(setup::Dict, p::Portfolio, inputs::Dict)
 
     # Load related inputs
