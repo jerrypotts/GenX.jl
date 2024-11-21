@@ -22,7 +22,7 @@ function load_inputs(setup::Dict, path::AbstractString, portfolio::Portfolio)
 end
 
 @doc raw"""
-	load_inputs(setup::Dict,path::AbstractString)
+	load_inputs_csv(setup::Dict,path::AbstractString)
 
 Reads inputs from a set of CSV files and stores data in a dictionary.
 
