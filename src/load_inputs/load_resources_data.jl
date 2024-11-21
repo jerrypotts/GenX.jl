@@ -377,7 +377,9 @@ function create_resources_sametype_from_portfolio(p::Portfolio, PortfolioType, s
         d[:name] = PSIP.get_name(t)
         d[:resource] = d[:name]
 
-        # Extract cost information
+        # Extract relevant resource information
+        # TODO: Define a proper mapping structure to convert from a portfolio to
+        # internal dictionary
         if ResourceType == GenX.Storage
             # Check for type of model
             d[:inv_cost_per_mwyr] = get_proportional_term(t.capital_costs_power)
