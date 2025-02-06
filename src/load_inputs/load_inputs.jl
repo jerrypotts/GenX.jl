@@ -111,7 +111,6 @@ end
 # Define generic constant for TransportTechnologies
 const GenericTransportTechnology = Union{
     PSIP.ACTransportTechnology,
-    PSIP.ExistingTransportTechnology,
     PSIP.HVDCTransportTechnology,
 }
 
